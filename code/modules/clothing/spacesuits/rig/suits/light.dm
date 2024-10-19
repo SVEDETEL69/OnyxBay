@@ -72,6 +72,12 @@
 /obj/item/clothing/gloves/lightrig/hacker
 	siemens_coefficient = 0
 
+/obj/item/rig/light/hacker/empty
+	initial_modules = list(
+		/obj/item/rig_module/ai_container,
+		/obj/item/rig_module/cooling_unit,
+		)
+
 /obj/item/rig/light/ninja
 	name = "ominous suit control module"
 	desc = "A unique, vaccum-proof suit of nano-enhanced armor designed specifically for assassins."
@@ -117,7 +123,7 @@
 			input = "\improper [input]"
 		SetName(input)
 		to_chat(M, "Suit naming succesful!")
-		remove_verb(loc, /obj/item/rig/light/ninja/verb/rename_suit)
+		verbs -= /obj/item/rig/light/ninja/verb/rename_suit
 		return 1
 
 
@@ -132,7 +138,7 @@
 	if(src && input && !M.incapacitated() && in_range(M,src))
 		desc = input
 		to_chat(M, "Suit description succesful!")
-		remove_verb(loc, /obj/item/rig/light/ninja/verb/rename_suit)
+		verbs -= /obj/item/rig/light/ninja/verb/rename_suit
 		return 1
 
 /obj/item/clothing/gloves/rig/light/ninja

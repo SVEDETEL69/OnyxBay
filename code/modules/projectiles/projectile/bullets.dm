@@ -192,6 +192,27 @@
 	fire_sound = 'sound/effects/weapons/gun/fire_revolver44.ogg' // Gauss .38 should sound like a badass
 	poisedamage = 12.5
 
+// Damage-wise these are something between 10mm and revolvers
+// Lore-wise, "bullet" version of accelerated particles launched by the accelerator-type weapons
+/obj/item/projectile/bullet/charge
+	name = "bullet" // Not "accelerated chunk of particles" or something like that, since it's too small to notice that it's not a regular bullet
+	icon_state = "blaster"
+	embed = FALSE // Unstable particles just disappear
+	can_ricochet = FALSE // Too unstable to survive ricocheting
+	damage = 35.0
+	armor_penetration = 20
+	poisedamage = 6.0
+
+/obj/item/projectile/bullet/charge/kinetic
+	name = "kinetic bullet"
+	icon_state = "kinetic"
+	embed = FALSE
+	can_ricochet = FALSE
+	damage = 22.5
+	agony = 15
+	penetration_modifier = 0.35
+	poisedamage = 10.0
+
 
 /* shotgun projectiles */
 
@@ -239,7 +260,7 @@
 	embed = FALSE // Unstable particles just disappear
 	can_ricochet = FALSE // Too unstable to survive ricocheting
 	damage = 22.5
-	armor_penetration = 15
+	armor_penetration = 5
 	pellets = 5
 	range_step = 3
 	spread_step = 5
@@ -266,7 +287,7 @@
 	armor_penetration = 50
 
 /obj/item/projectile/bullet/rifle/a792
-	damage = 35
+	damage = 50
 	armor_penetration = 50
 
 /obj/item/projectile/bullet/rifle/a145

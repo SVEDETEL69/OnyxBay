@@ -92,7 +92,7 @@
 
 	mob_bump_flag = HUMAN
 	mob_push_flags = ~HEAVY
-	mob_swap_flags = ~HEAVY
+	mob_swap_flags = (~HEAVY) ^ ROBOT
 
 	var/flash_protection = 0				// Total level of flash protection
 	var/equipment_tint_total = 0			// Total level of visualy impairing items
@@ -118,10 +118,18 @@
 	var/innate_heal = 1
 	var/shock_stage
 
+	var/poise_pool = HUMAN_DEFAULT_POISE
+	var/poise = HUMAN_DEFAULT_POISE
+	var/poise_immune_until = 0
+	var/blocking_hand = 0 // 0 for main hand, 1 for offhand
+	var/last_block = 0
+
 	var/obj/item/grab/current_grab_type 	// What type of grab they use when they grab someone.
 	var/skin_state = SKIN_NORMAL
 	var/no_pain = 0
 	var/full_pain = 0 // Cheaper to actually store this than iterate over all the organs for every single check
 	var/full_pain_lasttick = 0
+
+	var/push_ups = FALSE
 
 	var/debug = 0

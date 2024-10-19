@@ -82,6 +82,8 @@
 	. = ..()
 	if(is_pet)
 		mob_ai = new /datum/mob_ai/pet()
+	else if(ispath(mob_ai))
+		mob_ai = new mob_ai()
 	else
 		mob_ai = new()
 	mob_ai.holder = src
@@ -273,16 +275,17 @@
 	else
 		remove_movespeed_modifier(/datum/movespeed_modifier/purge_slowdown)
 
-/mob/living/simple_animal/get_status_tab_items()
+/mob/living/simple_animal/Stat()
 	. = ..()
 
-	if(show_stat_health)
-		. += "Health: [round((health / maxHealth) * 100)]%"
+	if(statpanel("Status") && show_stat_health)
+		stat(null, "Health: [round((health / maxHealth) * 100)]%")
 
 /mob/living/simple_animal/death(gibbed, deathmessage = "dies!", show_dead_message)
 	. = ..()
 	if(.)
 		icon_state = icon_dead
+		item_state = icon_dead
 		density = 0
 		health = 0 //Make sure dey dead.
 		walk_to(src, 0)

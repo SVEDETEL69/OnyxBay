@@ -83,7 +83,7 @@
 
 //The base miss chance for the different defence zones
 var/list/global/base_miss_chance = list(
-	BP_HEAD = 25,
+	BP_HEAD = 40,
 	BP_CHEST = 10,
 	BP_GROIN = 20,
 	BP_L_LEG = 30,
@@ -535,7 +535,7 @@ var/list/intents = list(I_HELP,I_DISARM,I_GRAB,I_HURT)
 			perpname = id.registered_name
 
 		var/datum/computer_file/crew_record/CR = get_crewmember_record(perpname)
-		if(check_records && !CR && !isMonkey())
+		if(check_records && !CR && !isMonkey(src))
 			threatcount += 4
 
 		if(check_arrest && CR && (CR.get_criminalStatus() == GLOB.arrest_security_status))

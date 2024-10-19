@@ -293,6 +293,11 @@
 			break
 
 		fired = TRUE
+		if(ismob(firer))
+			var/mob/living/A = firer
+			if(!A.aura_check(AURA_TYPE_BULLET, projectile, target_zone, firer))
+				target = firer
+				targloc = get_turf(target)
 		process_accuracy(projectile, firer, target, i, held_twohanded)
 
 		if(pointblank)
@@ -462,9 +467,6 @@
 	var/obj/item/projectile/P = projectile
 	if(!istype(P))
 		return 0 //default behaviour only applies to true projectiles
-
-	if(params)
-		P.set_clickpoint(params)
 
 	//shooting while in shock
 	var/shock_dispersion = 0

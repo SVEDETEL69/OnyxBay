@@ -31,14 +31,11 @@
 /// Called on `/atom/movable/set_glide_size` (new_glide_size)
 #define SIGNAL_UPDATE_GLIDE_SIZE "movable_glide_size"
 
-/// Called on `/atom/proc/examine` (mob/user, list/examine_result)
-#define SIGNAL_EXAMINED "examined"
-
-/// Called on `/atom/proc/examine` (mob/user, list/examine_result)
-#define SIGNAL_EXAMINED_MORE "examined_more"
-
 /// Called on `/atom/AltClick` (/atom)
 #define SIGNAL_ALT_CLICKED "atom_alt_click"
 
 /// Called on `/atom/CtrlAltClick` (/atom)
 #define SIGNAL_CTRL_ALT_CLICKED "atom_ctrl_alt_click"
+
+//from SSatoms InitAtom - Only if the  atom was not deleted or failed initialization and has a loc
+#define SIGNAL_ATOM_AFTER_SUCCESSFUL_INITIALIZED_ON "atom_init_success_on"

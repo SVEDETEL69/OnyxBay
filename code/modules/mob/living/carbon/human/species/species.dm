@@ -204,9 +204,9 @@
 	var/list/genders = list(MALE, FEMALE)
 
 	// Bump vars
-	var/bump_flag = HUMAN	// What are we considered to be when bumped?
-	var/push_flags = ~HEAVY	// What can we push?
-	var/swap_flags = ~HEAVY	// What can we swap place with?
+	var/bump_flag  = HUMAN            // What are we considered to be when bumped?
+	var/push_flags = ~HEAVY           // What can we push?
+	var/swap_flags = (~HEAVY) ^ ROBOT // What can we swap place with?
 
 	var/pass_flags = 0
 	var/breathing_sound = 'sound/voice/monkey.ogg'
@@ -439,11 +439,15 @@ The slots that you can use are found in items_clothing.dm and are the inventory 
 
 /datum/species/proc/remove_inherent_verbs(mob/living/carbon/human/H)
 	if(inherent_verbs)
-		revoke_verb(H, inherent_verbs)
+		for(var/verb_path in inherent_verbs)
+			H.verbs -= verb_path
+	return
 
 /datum/species/proc/add_inherent_verbs(mob/living/carbon/human/H)
 	if(inherent_verbs)
-		grant_verb(H, inherent_verbs)
+		for(var/verb_path in inherent_verbs)
+			H.verbs |= verb_path
+	return
 
 /datum/species/proc/remove_inherent_traits(mob/living/carbon/human/H)
 	if(inherent_traits)
@@ -674,12 +678,12 @@ The slots that you can use are found in items_clothing.dm and are the inventory 
 	//target.visible_message("Debug \[DISARM\]: [target] lost [round(4.0+4.0*((100-effective_armor)/100),0.1)] poise ([target.poise]/[target.poise_pool])") // Debug Message
 
 	//var/randn = rand(1, 100)
-	if(!(species_flags & SPECIES_FLAG_NO_SLIP) && target.poise <= 20 && !prob(target.poise*4.5) && !target.lying)
+	if(!(species_flags & SPECIES_FLAG_NO_SLIP) && target.poise <= 20 && !prob(target.poise*4.5) && !target.check_poise_immunity())
 		var/armor_check = target.run_armor_check(affecting, "melee")
 		playsound(target.loc, 'sound/weapons/thudswoosh.ogg', 50, 1, -1)
 		if(prob(100-target.poise*6.5))
 			target.visible_message("<span class='danger'>[attacker] has pushed [target]!</span>")
-			target.apply_effect(4, WEAKEN, armor_check)
+			target.apply_effect(5, WEAKEN, armor_check)
 		else
 			target.visible_message("<span class='warning'>[attacker] attempted to push [target]!</span>")
 		return

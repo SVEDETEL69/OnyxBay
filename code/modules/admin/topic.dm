@@ -138,21 +138,9 @@
 				if(null,"") return
 				if("*New Rank*")
 					new_rank = input("Please input a new rank", "New custom rank", null, null) as null|text
-					if(config.admin.admin_legacy_system)
-						new_rank = ckeyEx(new_rank)
 					if(!new_rank)
 						to_chat(usr, "<font color='red'>Error: Topic 'editrights': Invalid rank</font>")
 						return
-					if(config.admin.admin_legacy_system)
-						if(admin_ranks.len)
-							if(new_rank in admin_ranks)
-								rights = admin_ranks[new_rank]		//we typed a rank which already exists, use its rights
-							else
-								admin_ranks[new_rank] = 0			//add the new rank to admin_ranks
-				else
-					if(config.admin.admin_legacy_system)
-						new_rank = ckeyEx(new_rank)
-						rights = admin_ranks[new_rank]				//we input an existing rank, use its rights
 
 			if(D)
 				D.disassociate()								//remove adminverbs and unlink from client
@@ -891,19 +879,21 @@
 		if(!type)
 			return
 
-		var/duration = tgui_input_number(usr, "Choose the duration (ROUNDS!!!)", "Hellban", 0, 1000, 1, round_value = TRUE)
+		var/duration = tgui_input_number(usr, "Choose the duration (ROUNDS!!!) -1 for Perma Ban", "Hellban", 1, 1000, -1, round_value = TRUE)
 		if(!duration)
 			return
 
 		var/level = tgui_input_number(usr, "Select luck level", "Hellban", 100, 100, 0, round_value = TRUE)
-		if(!duration)
+		if(!level)
 			return
+
+		var/reason = tgui_input_text(usr, "Input a reason", "Hellban", "", 255, 0)
 
 		var/confirmation = tgui_alert(usr, "Luckban [M.ckey], lucktype [type], luck level [level], duration: [duration].", "Hellban", list("Yes", "No"))
 		if(confirmation == "No")
 			return
 
-		M.client.write_luck(type, level, duration)
+		M.client.write_luck(type, level, duration, src, reason)
 
 	else if(href_list["removejobban"])
 		if(!check_rights(R_BAN))	return
@@ -2132,13 +2122,16 @@
 			if(!selected_org_name) return
 			selected_org = GLOB.traitors.fixer.organizations_by_name[selected_org_name]
 			if(!selected_org) return
-			var/new_cnt_type = input("Select contract type:", "Contract type", null) as null|anything in list("Assassinate", "Implant", "Steal", "Steal active AI", "Steal blood samples", "Dump")
+			var/new_cnt_type = input("Select contract type:", "Contract type", null) as null|anything in list("Assassinate", "Implant", "Steal", "Steal active AI", "Steal blood samples", "Dump", "Disfigure")
 			var/selected_reason = input("Enter reason (don't select any, if you want to select reason by code)", "Contract reason") as null|text
 			if(!selected_reason) selected_reason = null
 			switch(new_cnt_type)
 				if("Assassinate")
 					var/datum/mind/selected_target = input("Select target (don't select any, if you want to select target by code):", "Syndicate organization", null) as null|anything in SSticker.minds
 					contract = new /datum/antag_contract/item/assassinate(selected_org, selected_reason, selected_target)
+				if("Disfigure")
+					var/datum/mind/selected_target = input("Select target (don't select any, if you want to select target by code):", "Syndicate organization", null) as null|anything in SSticker.minds
+					contract = new /datum/antag_contract/item/disfigure(selected_org, selected_reason, selected_target)
 				if("Implant")
 					var/datum/mind/selected_target = input("Select target (don't select any, if you want to select target by code):", "Syndicate organization", null) as null|anything in SSticker.minds
 					contract = new /datum/antag_contract/implant(selected_org, selected_reason, selected_target)

@@ -26,8 +26,8 @@
 /obj/item/gun/energy/ionrifle/small
 	name = "ion pistol"
 	desc = "The NT Mk72 EW Preston is a personal defense weapon designed to disable mechanical threats."
-	icon_state = "ionpistolonyx"
-	item_state = "ionpistolonyx"
+	icon_state = "ionpistol"
+	item_state = "ionpistol"
 	improper_held_icon = FALSE
 	origin_tech = list(TECH_COMBAT = 2, TECH_MAGNET = 4)
 	w_class = ITEM_SIZE_NORMAL
@@ -37,6 +37,7 @@
 	charge_cost = 20
 	max_shots = 6
 	projectile_type = /obj/item/projectile/ion/small
+	wielded_item_state = null
 	fire_sound = 'sound/effects/weapons/energy/fire1.ogg'
 
 /obj/item/gun/energy/decloner

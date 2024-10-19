@@ -49,11 +49,16 @@
 	if(!usr.drop(src, changing_slots = TRUE))
 		return
 
-	switch(over_object.name)
-		if("r_hand")
+	var/atom/movable/screen/inventory/inv_box = over_object
+	if(!istype(inv_box))
+		return
+
+	switch(inv_box.slot_id)
+		if(slot_r_hand)
 			usr.put_in_r_hand(src)
-		if("l_hand")
+		if(slot_l_hand)
 			usr.put_in_l_hand(src)
+
 	add_fingerprint(usr)
 
 /obj/item/clothing/examine(mob/user, infix)
@@ -78,7 +83,7 @@
 /obj/item/clothing/proc/attach_accessory(mob/user, obj/item/clothing/accessory/A)
 	LAZYADD(accessories, A)
 	A.on_attached(src, user)
-	add_verb(loc, /obj/item/clothing/proc/removetie_verb)
+	src.verbs |= /obj/item/clothing/proc/removetie_verb
 	update_accessory_slowdown()
 	update_clothing_icon()
 
@@ -107,7 +112,7 @@
 		A = accessories[1]
 	src.remove_accessory(usr,A)
 	if(!LAZYLEN(accessories))
-		remove_verb(loc, /obj/item/clothing/proc/removetie_verb)
+		src.verbs -= /obj/item/clothing/proc/removetie_verb
 
 /obj/item/clothing/emp_act(severity)
 	if(LAZYLEN(accessories))

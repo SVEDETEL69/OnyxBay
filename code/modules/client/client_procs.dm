@@ -72,7 +72,7 @@
 			to_chat(src, SPAN("danger", "[msg]"))
 			return
 
-	if(config.general.second_topic_limit && href_list["window_id"] != "statbrowser")
+	if(config.general.second_topic_limit)
 		var/second = round(world.time, 10)
 		if(!topiclimiter)
 			topiclimiter = new(LIMITER_SIZE)
@@ -90,9 +90,6 @@
 	// Tgui Topic middleware
 	if(tgui_Topic(href_list))
 		return
-
-	if(href_list["reload_statbrowser"])
-		stat_panel.reinitialize()
 
 	// ask BYOND client to stop spamming us with assert arrival confirmations (see byond bug ID:2256651)
 	if(asset_cache_job && (asset_cache_job in completed_asset_jobs))
@@ -180,10 +177,6 @@
 	GLOB.clients += src
 	GLOB.ckey_directory[ckey] = src
 
-	// Instantiate tgui stat panel
-	stat_panel = new(src, "statbrowser")
-	stat_panel.subscribe(src, nameof(.proc/on_stat_panel_message))
-
 	// Instantiate tgui panel
 	tgui_panel = new(src)
 
@@ -192,11 +185,18 @@
 	if(admin_datum)
 		if(admin_datum in GLOB.deadmined_list)
 			deadmin_holder = admin_datum
-			grant_verb(src, /client/proc/readmin_self)
+			src.verbs |= /client/proc/readmin_self
 		else
 			holder = admin_datum
 			GLOB.admins += src
 		admin_datum.owner = src
+	else if(config.admin.promote_localhost)
+		var/static/localhost_addresses = list("127.0.0.1", "::1")
+
+		if(isnull(address) || (address in localhost_addresses))
+			var/datum/admins/A = new /datum/admins("Host", R_ALL, ckey)
+
+			A.associate(src)
 
 	else if((config.multiaccount.panic_bunker != 0) && (get_player_age(ckey) < config.multiaccount.panic_bunker))
 		var/player_age = get_player_age(ckey)
@@ -261,16 +261,7 @@
 	if(prefs && !istype(mob, world.mob))
 		prefs.apply_post_login_preferences(src)
 
-	turf_examine = new(src)
-
 	settings = new(src)
-
-	stat_panel.initialize(
-		inline_html = file("html/statbrowser/statbrowser.html"),
-		inline_css = file("html/statbrowser/statbrowser.css"),
-		inline_js = file("html/statbrowser/statbrowser.js")
-	)
-	add_think_ctx("check_panel_loaded", CALLBACK(src, nameof(.proc/check_panel_loaded)), world.time + 30 SECONDS)
 
 	if(config.general.player_limit && is_player_rejected_by_player_limit(usr, ckey))
 		if(config.multiaccount.panic_server_address && TopicData != "redirect")
@@ -330,7 +321,6 @@
 	return FALSE
 
 /client/proc/log_client_to_db()
-
 	if(IsGuestKey(src.key))
 		return
 
@@ -392,6 +382,19 @@
 	var/seconds = inactivity/10
 	return "[round(seconds / 60)] minute\s, [seconds % 60] second\s"
 
+// Byond seemingly calls stat, each tick.
+// Calling things each tick can get expensive real quick.
+// So we slow this down a little.
+// See: http://www.byond.com/docs/ref/info.html#/client/proc/Stat
+/client/Stat()
+	if(!usr)
+		return
+	// Add always-visible stat panel calls here, to define a consistent display order.
+	statpanel("Status")
+
+	. = ..()
+	stoplag(1)
+
 // send resources to the client. It's here in its own proc so we can move it around easiliy if need be
 /client/proc/send_resources()
 
@@ -419,6 +422,8 @@
 		'html/images/stamp_images/stamp-cargo.png',
 		'html/images/stamp_images/stamp-intaff.png',
 		'html/images/stamp_images/stamp-ward.png',
+		'html/images/stamp_images/stamp-ntd.png',
+		'html/images/stamp_images/stamp-merchant.png',
 		'html/search.js',
 		'html/panels.css',
 		'html/spacemag.css',
@@ -465,53 +470,6 @@
 	set category = "OOC"
 	if(prefs)
 		prefs.open_setup_window(usr)
-
-/client/proc/check_panel_loaded()
-	if(stat_panel.is_ready())
-		return
-
-	to_chat(src, SPAN_DANGER(FONT_HUGE("Statpanel failed to load, click <a href='?src=[ref(src)];reload_statbrowser=1'>here</a> to reload the panel.")))
-
-/// Compiles a full list of verbs and sends it to the stat panel browser.
-/client/proc/init_verbs()
-	var/list/verblist = list()
-	var/list/verbstoprocess = verbs.Copy()
-
-	if(mob)
-		verbstoprocess += mob.verbs
-		for(var/atom/movable/thing as anything in mob.contents)
-			verbstoprocess += thing.verbs
-
-	panel_tabs.Cut() // panel_tabs get reset in init_verbs on JS side anyway
-
-	for(var/procpath/verb_to_init as anything in verbstoprocess)
-		if(!verb_to_init)
-			continue
-		if(verb_to_init.hidden)
-			continue
-		if(!istext(verb_to_init.category))
-			continue
-		panel_tabs |= verb_to_init.category
-		verblist[++verblist.len] = list(verb_to_init.category, verb_to_init.name)
-
-	stat_panel.send_message("init_verbs", list(panel_tabs = panel_tabs, verblist = verblist))
-
-/**
- * Handles incoming messages from the stat-panel TGUI.
- */
-/client/proc/on_stat_panel_message(type, list/payload, list/href_list)
-	switch(type)
-		if("Update-Verbs")
-			init_verbs()
-		if("Remove-Tabs")
-			panel_tabs -= payload["tab"]
-		if("Send-Tabs")
-			panel_tabs |= payload["tab"]
-		if("Reset-Tabs")
-			panel_tabs = list()
-		if("Set-Tab")
-			stat_tab = payload["tab"]
-			SSstatpanels.immediate_send_stat_data(src)
 
 /client/proc/apply_fps(client_fps)
 	if(world.byond_version >= 511 && byond_version >= 511 && client_fps >= CLIENT_MIN_FPS && client_fps <= CLIENT_MAX_FPS)
@@ -725,53 +683,120 @@
 			return luck_rnd
 
 /client/proc/load_luck()
-	var/json_file = file("data/players/[ckey]/luck.json")
-	var/list/luck = json_decode(file2text(json_file))
+	if(!establish_db_connection())
+		error("Ban database connection failure.")
+		log_misc("Ban database connection failure.")
+		return
 
-	for(var/lucktype in luck)
-		var/level = luck[lucktype]["level"]
-		switch(lucktype)
+	var/DBQuery/query = sql_query({"
+			SELECT
+				luck_level,
+				luck_type
+			FROM
+				erro_ban
+			WHERE
+				(ckey = $ckeytext)
+				AND
+				(
+					bantype = 'LUCK_PERMABAN'
+					OR
+					bantype = 'LUCK_TEMPBAN'
+				)
+				AND
+				isnull(unbanned)
+				[isnull(config.general.server_id) ? "" : " AND server_id = $server_id"]
+			"}, dbcon, list(ckeytext = src.ckey, server_id = config.general.server_id))
+
+	while(query.NextRow())
+		var/luck_level =  text2num(query.item[1])
+		var/luck_type = query.item[2]
+		switch(luck_type)
 			if(LUCK_CHECK_GENERAL)
-				luck_general = level
+				luck_general =luck_level
 			if(LUCK_CHECK_COMBAT)
-				luck_combat = level
+				luck_combat = luck_level
 			if(LUCK_CHECK_ENG)
-				luck_eng = level
+				luck_eng = luck_level
 			if(LUCK_CHECK_MED)
-				luck_med = level
+				luck_med = luck_level
 			if(LUCK_CHECK_RND)
-				luck_rnd = level
+				luck_rnd = luck_level
 
-/client/proc/write_luck(lucktype, luck_level, duration)
-	var/json_file = file("data/players/[ckey]/luck.json")
-	var/list/to_send = list()
-	if(!fexists(json_file))
-		WRITE_FILE(json_file, "{}")
-	else
-		to_send = json_decode(file2text(json_file))
-	to_send[lucktype] = list(
-		"level" = luck_level,
-		"rounds_left" = duration,
-	)
-	listclearnulls(to_send)
-	fdel(json_file)
-	WRITE_FILE(json_file, json_encode(to_send))
+
+
+/client/proc/write_luck(lucktype, luck_level, duration=-1, admin, reason)
+	if(!establish_db_connection())
+		error("Ban database connection failure.")
+		log_misc("Ban database connection failure.")
+		return
+
+	var/datum/admins/admin_datum = admin
+	var/bantype = BANTYPE_PERMA_LUCKBAN
+	if(duration!=-1)
+		bantype = BANTYPE_TEMP_LUCKBAN
+
+	admin_datum.DB_ban_record(bantype,src.mob,duration,reason,null,TRUE,src.ckey,null,src.computer_id,luck_level,lucktype)
 	load_luck()
 
 /client/proc/update_luck()
-	var/json_file = file("data/players/[ckey]/luck.json")
-	var/list/to_send = list()
-	if(!fexists(json_file))
-		WRITE_FILE(json_file, "{}")
-	else
-		to_send = json_decode(file2text(json_file))
+	if(!establish_db_connection())
+		error("Ban database connection failure.")
+		log_misc("Ban database connection failure.")
+		return
 
-	for(var/lucktype in to_send)
-		var/list/luck = to_send[lucktype]
-		luck["rounds_left"]--
-		if(luck["rounds_left"] <= 0)
-			to_send -= lucktype
+	var/DBQuery/query = sql_query({"
+			SELECT
+				id,
+				duration,
+				rounds
+			FROM
+				erro_ban
+			WHERE
+				(ckey = $ckeytext)
+				AND
+				bantype = 'LUCK_TEMPBAN'
+				AND
+				isnull(unbanned)
+				[isnull(config.general.server_id) ? "" : " AND server_id = $server_id"]
+			"}, dbcon, list(ckeytext = src.ckey, server_id = config.general.server_id))
 
-	fdel(json_file)
-	listclearnulls(to_send)
-	WRITE_FILE(json_file, json_encode(to_send))
+	while(query.NextRow())
+		var/id = text2num(query.item[1])
+		var/duration = text2num(query.item[2])
+		var/isRounds = text2num(query.item[3])
+		if(!isRounds)
+			return
+		if(duration>1)
+			sql_query({"
+				UPDATE
+					erro_ban
+				SET
+					duration = $duration
+				WHERE
+					id = $id
+					AND
+					ckey = $ckeytext
+					AND
+					bantype = 'LUCK_TEMPBAN'
+					AND
+					isnull(unbanned)
+					[isnull(config.general.server_id) ? "" : " AND server_id = $server_id"]
+				"}, dbcon, list(id = id, duration = duration-1, ckeytext = src.ckey, server_id = config.general.server_id))
+		else
+			sql_query({"
+				UPDATE
+					erro_ban
+				SET
+					unbanned = 1,
+					unbanned_reason = 'Expired',
+					unbanned_datetime = Now()
+				WHERE
+					id = $id
+					AND
+					ckey = $ckeytext
+					AND
+					bantype = 'LUCK_TEMPBAN'
+					AND
+					isnull(unbanned)
+					[isnull(config.general.server_id) ? "" : " AND server_id = $server_id"]
+				"}, dbcon, list(id = id, ckeytext = src.ckey, server_id = config.general.server_id))
